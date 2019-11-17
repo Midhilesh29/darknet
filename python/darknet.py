@@ -1,6 +1,10 @@
 from ctypes import *
 import math
 import random
+import os
+import cv2
+import time
+import argparse
 
 def sample(probs):
     s = sum(probs)
@@ -45,7 +49,8 @@ class METADATA(Structure):
     
 
 #lib = CDLL("/home/pjreddie/documents/darknet/libdarknet.so", RTLD_GLOBAL)
-lib = CDLL("libdarknet.so", RTLD_GLOBAL)
+# lib = CDLL("libdarknet.so", RTLD_GLOBAL)
+lib = CDLL(os.path.join(os.getcwd(), "libdarknet.so"), RTLD_GLOBAL)
 lib.network_width.argtypes = [c_void_p]
 lib.network_width.restype = c_int
 lib.network_height.argtypes = [c_void_p]
@@ -141,6 +146,37 @@ def detect(net, meta, image, thresh=.5, hier_thresh=.5, nms=.45):
     free_image(im)
     free_detections(dets, num)
     return res
+
+# input : image path
+# load pretrained weights, classes
+counter=0
+
+def localize(net,meta,image_path):
+
+    t0=time.time()
+    r=detect(net,meta,image_path.encode())
+    print("fps:",(1/(time.time()-t0)))
+    bounding_box=[]
+    predicted_class=[]
+    class_confidence=[]
+    output=[]
+    for i in range(len(r)):
+        bbox=r[i][2]
+        pred_class=r[i][0].decode()
+        confidence=r[i][1]
+        x1=int((bbox[0]-bbox[2]/2))
+        y1=int((bbox[1]-bbox[3]/2))
+        x2=int((bbox[0]+bbox[2]/2))
+        y2=int((bbox[1]+bbox[3]/2))
+        #cv2.rectangle(image,(x1,y1),(x2,y2),(0,255,255),2)
+        bounding_box.append([x1,y1,x2,y2])
+        predicted_class.append(pred_class)
+        class_confidence.append(confidence)
+    #cv2.imwrite("output_image/"+str(counter)+'.jpg',image)
+    #counter+=1
+    output.append([predicted_class,class_confidence,bounding_box])
+    return output
+
     
 if __name__ == "__main__":
     #net = load_net("cfg/densenet201.cfg", "/home/pjreddie/trained/densenet201.weights", 0)
@@ -148,9 +184,40 @@ if __name__ == "__main__":
     #meta = load_meta("cfg/imagenet1k.data")
     #r = classify(net, meta, im)
     #print r[:10]
-    net = load_net("cfg/tiny-yolo.cfg", "tiny-yolo.weights", 0)
-    meta = load_meta("cfg/coco.data")
-    r = detect(net, meta, "data/dog.jpg")
-    print r
-    
+
+    parser = argparse.ArgumentParser(description='Python YOLO v3')
+
+    parser.add_argument('--dataset', dest='dataset', default="input_image/", help='dataset name')
+
+    args = parser.parse_args()
+
+    net = load_net(b"cfg/yolov3.cfg", b"yolov3.weights", 0)
+    meta = load_meta(b"cfg/coco.data")
+    img_file=sorted(os.listdir(args.dataset))
+    # counter=1
+    # average_fps=0
+    for img in img_file:
+        image_data=args.dataset+img
+        _=localize(net,meta,image_data)
+        # image=cv2.imread(image_data)
+        # t0=time.time()
+        # r=detect(net,meta,image_data.encode())
+        # print("fps:",(1/(time.time()-t0)))
+        # average_fps=+(1/(time.time()-t0))
+        # for i in range(len(r)):
+        #     bbox=r[i][2]
+        #     x=bbox[0]
+        #     y=bbox[1]
+        #     w=bbox[2]
+        #     h=bbox[3]
+        #     x1=int((x-w/2))
+        #     y1=int((y-h/2))
+        #     x2=int((x+w/2))
+        #     y2=int((y+h/2))
+        #     cv2.rectangle(image,(x1,y1),(x2,y2),(0,255,255),2)
+        # print("output_image/"+str(counter)+'.jpg')
+        # cv2.imwrite("output_image/"+str(counter)+'.jpg',image)
+        # counter+=1
+        # if(counter%50==0):
+        #     print("-----------------average fps------------------:",average_fps/counter)
 
