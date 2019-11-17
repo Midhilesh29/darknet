@@ -164,7 +164,8 @@ def localize(net,meta,image_path, output_folder):
 	Output:
 		predicted_class - Object classes present in the input image
 		class_condifence - How much yolov3 is confidence about the classification
-		bounding boxes - bounding boxes of all the objects present in the image (top left x coordinate, top left y coordinate, bottom right x coordinate, bottom right y coordinate)
+		bounding boxes - bounding boxes of all the objects present in the image 
+		(top left x coordinate, top left y coordinate, bottom right x coordinate, bottom right y coordinate)
 	'''
 
     t0=time.time()
