@@ -151,7 +151,21 @@ def detect(net, meta, image, thresh=.5, hier_thresh=.5, nms=.45):
 # load pretrained weights, classes
 counter=0
 
-def localize(net,meta,image_path):
+
+def localize(net,meta,image_path, output_folder):
+
+	'''
+	Function the localizes the objects present in the image and writed the images in output_folder
+	parameters:
+		net - is a load_net() function output
+		meta - load_meta() function output
+		image_path - Path of the image encoded in bytes
+		output_folder - Path of folder where the input images need to plotted along with thier bounding boxes
+	Output:
+		predicted_class - Object classes present in the input image
+		class_condifence - How much yolov3 is confidence about the classification
+		bounding boxes - bounding boxes of all the objects present in the image (top left x coordinate, top left y coordinate, bottom right x coordinate, bottom right y coordinate)
+	'''
 
     t0=time.time()
     r=detect(net,meta,image_path.encode())
@@ -168,12 +182,12 @@ def localize(net,meta,image_path):
         y1=int((bbox[1]-bbox[3]/2))
         x2=int((bbox[0]+bbox[2]/2))
         y2=int((bbox[1]+bbox[3]/2))
-        #cv2.rectangle(image,(x1,y1),(x2,y2),(0,255,255),2)
+        cv2.rectangle(image,(x1,y1),(x2,y2),(0,255,255),2)
         bounding_box.append([x1,y1,x2,y2])
         predicted_class.append(pred_class)
         class_confidence.append(confidence)
-    #cv2.imwrite("output_image/"+str(counter)+'.jpg',image)
-    #counter+=1
+    cv2.imwrite(output_folder+str(counter)+'.jpg',image)
+    counter+=1
     output.append([predicted_class,class_confidence,bounding_box])
     return output
 
@@ -184,6 +198,8 @@ if __name__ == "__main__":
 
     parser.add_argument('--dataset', dest='dataset', default="input_image/", help='dataset name')
 
+    parser.add_argument('--output_folder',dest='output_folder',default="output_images/",help='output file name')
+
     args = parser.parse_args()
 
     net = load_net(b"cfg/yolov3.cfg", b"yolov3.weights", 0)
@@ -192,6 +208,6 @@ if __name__ == "__main__":
 
     for img in img_file:
         image_data=args.dataset+img
-        _=localize(net,meta,image_data)
+        _=localize(net,meta,image_data, args.output_folder)
 
 
